@@ -1,0 +1,101 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SportShield AI — Deploy to AWS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Triggered on version tags (v1.0.0, v1.2.3, etc.)
+# Builds images, pushes to Amazon ECR, deploys to EC2.
+#
+# Required GitHub Secrets:
+#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION,
+#   AWS_ECR_REGISTRY, EC2_HOST, EC2_SSH_KEY, EC2_USER
+
+name: Deploy
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── AWS Authentication ──
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # ── Build & Push Images ──
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/sportshield-backend:${{ github.ref_name }}
+            ${{ steps.login-ecr.outputs.registry }}/sportshield-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/sportshield-frontend:${{ github.ref_name }}
+            ${{ steps.login-ecr.outputs.registry }}/sportshield-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push nginx
+        uses: docker/build-push-action@v5
+        with:
+          context: ./nginx
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/sportshield-nginx:${{ github.ref_name }}
+            ${{ steps.login-ecr.outputs.registry }}/sportshield-nginx:latest
+
+      # ── Deploy to EC2 ──
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /opt/sportshield-ai
+
+            # Pull latest images
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            
+            docker compose -f docker-compose.prod.yml pull backend frontend nginx
+            
+            # Zero-downtime rolling restart
+            docker compose -f docker-compose.prod.yml up -d --no-deps --build backend
+            docker compose -f docker-compose.prod.yml up -d --no-deps --build worker
+            docker compose -f docker-compose.prod.yml up -d --no-deps --build beat
+            docker compose -f docker-compose.prod.yml up -d --no-deps --build frontend
+            docker compose -f docker-compose.prod.yml up -d --no-deps --build nginx
+            
+            # Cleanup old images
+            docker image prune -f
+            
+            echo "✅ SportShield AI deployed: ${{ github.ref_name }}"

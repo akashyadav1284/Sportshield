@@ -1,0 +1,114 @@
+/* SportShield AI — Premium Global Styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #0B0F19; /* Deep dark slate */
+    --foreground: #FFFFFF;     /* Pure white */
+    
+    --card: #111827;
+    --card-foreground: #FFFFFF;
+    
+    --border: #1F2937;
+    
+    --muted: #1F2937;
+    --muted-foreground: #9CA3AF;
+    
+    --accent: #1F2937;
+    --accent-foreground: #FFFFFF;
+  }
+
+  /* Force Dark Mode always */
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased min-h-screen relative;
+    font-feature-settings: "cv11", "ss01", "ss03";
+  }
+
+  /* High-contrast solid dark background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: -1;
+    background: var(--background);
+  }
+
+  /* Custom high-tech scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-zinc-950;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-800 rounded-full border border-zinc-900 border-[1px];
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-700;
+  }
+
+  /* Focus visible ring */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-cyan-500/50 ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /* Premium Dark Card */
+  .glass-card {
+    @apply relative bg-[#111827] border border-[#1F2937] rounded-2xl shadow-xl transition-all duration-300;
+  }
+  
+  .glass-card:hover {
+    @apply border-[#374151] shadow-[0_8px_30px_rgb(0,0,0,0.8)];
+  }
+
+  /* Subtly glowing container */
+  .glow-container {
+    @apply relative overflow-hidden;
+  }
+  .glow-container::after {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-violet-500/10 opacity-0 transition-opacity duration-500 pointer-events-none;
+  }
+  .glow-container:hover::after {
+    @apply opacity-100;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent drop-shadow-[0_0_10px_rgba(6,182,212,0.3)];
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    @apply relative overflow-hidden bg-zinc-900 border border-zinc-800;
+  }
+  .shimmer::before {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background-image: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Platform colors mapping for text/borders (bg handled by glass or transparent base) */
+  .platform-google { @apply !text-red-400 !border-red-500/30; }
+  .platform-bing { @apply !text-blue-400 !border-blue-500/30; }
+  .platform-twitter { @apply !text-sky-400 !border-sky-500/30; }
+  .platform-youtube { @apply !text-red-500 !border-red-600/30; }
+  .platform-web { @apply !text-zinc-300 !border-zinc-700; }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

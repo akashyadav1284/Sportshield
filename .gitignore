@@ -1,0 +1,41 @@
+# Node
+node_modules/
+dist/
+build/
+.npm
+.nvmrc
+.pnp.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Data
+.DS_Store
+Thumbs.db
+
+# Project specifics
+uploads/
+faiss_data/
+huggingface_cache/
