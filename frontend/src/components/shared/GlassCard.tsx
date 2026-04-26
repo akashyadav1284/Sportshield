@@ -23,8 +23,7 @@ export function GlassCard({ children, className = '', glowColor = 'cyan', noPadd
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
-      className={`glass-card group overflow-hidden ${noPadding ? '' : 'p-6'} ${className}`}
+      className={`glass-card group ${noPadding ? '' : 'p-6'} ${className}`}
       {...props}
     >
       {/* Background glow base */}

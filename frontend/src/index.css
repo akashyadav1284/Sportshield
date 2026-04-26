@@ -62,13 +62,73 @@
 }
 
 @layer components {
-  /* Premium Dark Card */
+  /* Premium Holographic Glass Card (Truvix Style) */
   .glass-card {
-    @apply relative bg-[#111827] border border-[#1F2937] rounded-2xl shadow-xl transition-all duration-300;
+    @apply relative bg-[#0B0F19]/60 backdrop-blur-md border-0 rounded-2xl transition-all duration-500 overflow-hidden;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
   }
-  
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: conic-gradient(from 0deg, transparent 70%, #06b6d4 80%, #8b5cf6 90%, transparent 100%);
+    animation: rotate-holo 8s linear infinite;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    z-index: 0;
+  }
+  .glass-card::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    background: rgba(11, 15, 25, 0.95);
+    border-radius: 15px;
+    backdrop-filter: blur(20px);
+    z-index: 0;
+  }
+  .glass-card > * {
+    @apply relative z-10;
+  }
   .glass-card:hover {
-    @apply border-[#374151] shadow-[0_8px_30px_rgb(0,0,0,0.8)];
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 30px 60px -15px rgba(6, 182, 212, 0.3), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .glass-card:hover::before { opacity: 0.5; }
+
+  /* Plasma Button (Truvix Style) */
+  .btn-plasma {
+    position: relative;
+    background: linear-gradient(120deg, #6366f1, #8b5cf6, #06b6d4, #6366f1);
+    background-size: 300% 300%;
+    border: none;
+    overflow: hidden;
+    z-index: 1;
+    animation: plasma-flow 8s ease infinite;
+    transition: transform 0.3s ease;
+  }
+  .btn-plasma::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, transparent 60%);
+    opacity: 0;
+    mix-blend-mode: overlay;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+  }
+  .btn-plasma:hover {
+    animation: plasma-flow 4s ease infinite;
+  }
+  .btn-plasma:hover::before { opacity: 1; }
+  
+  @keyframes rotate-holo {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes plasma-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
   }
 
   /* Subtly glowing container */

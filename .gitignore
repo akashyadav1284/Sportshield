@@ -39,3 +39,36 @@ Thumbs.db
 uploads/
 faiss_data/
 huggingface_cache/
+
+# Database
+*.db
+*.sqlite3
+
+# FAISS index files
+faiss_index.bin
+faiss_id_map.json
+
+# TypeScript build cache
+tsconfig.tsbuildinfo
+
+# Build logs & output
+*.log
+build_output.txt
+buildlog.txt
+
+# Coverage & test reports
+coverage/
+.nyc_output/
+htmlcov/
+*.cover
+
+# Docker
+*.pid
+
+# Misc
+*.bak
+*.orig
+*.tmp
+*.cache
+.eslintcache
+.parcel-cache/
