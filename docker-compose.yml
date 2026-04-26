@@ -21,10 +21,11 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -35,6 +36,8 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
+    environment:
+      - WATCHFILES_FORCE_POLLING=true
     volumes:
       - ./backend:/app
       - uploads:/app/uploads

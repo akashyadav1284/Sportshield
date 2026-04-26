@@ -1,10 +1,13 @@
 /** SportShield AI — Scheduled Scans Page */
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Play, Pause, RefreshCw, CheckCircle2, AlertTriangle, Globe, Search, Zap, Calendar } from 'lucide-react';
 import { GlassCard } from '../components/shared/GlassCard';
 import { PageTransition } from '../components/shared/PageTransition';
 import { GlowingButton } from '../components/shared/GlowingButton';
+import api from '../lib/api';
 
 type ScanFrequency = 'real-time' | 'hourly' | 'daily' | 'weekly';
 type ScanStatus = 'active' | 'paused' | 'running';
@@ -57,6 +60,26 @@ const DEMO_HISTORY: ScanHistoryEntry[] = [
 export default function ScheduledScans() {
   const [scans] = useState(DEMO_SCANS);
   const [history] = useState(DEMO_HISTORY);
+  const queryClient = useQueryClient();
+
+  const scanAllMutation = useMutation({
+    mutationFn: async () => {
+      const { data } = await api.post('/scan/trigger');
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success('Scans Initiated', {
+        description: `Triggered scanning for ${data.asset_count || 'all active'} assets.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['violations'] });
+    },
+    onError: () => {
+      toast.error('Scan Failed', {
+        description: 'Could not trigger the scans. Please try again.',
+      });
+    },
+  });
 
   const stats = {
     activeScans: scans.filter(s => s.status === 'active').length,
@@ -72,8 +95,15 @@ export default function ScheduledScans() {
           <h1 className="text-3xl font-bold text-white mb-1">Scheduled Scans</h1>
           <p className="text-zinc-400">Configure automated scanning frequency per asset.</p>
         </div>
-        <GlowingButton variant="primary" size="sm" className="gap-2">
-          <Zap className="w-4 h-4" /> Run All Now
+        <GlowingButton 
+          variant="primary" 
+          size="sm" 
+          className="gap-2"
+          onClick={() => scanAllMutation.mutate()}
+          disabled={scanAllMutation.isPending}
+        >
+          <Zap className={`w-4 h-4 ${scanAllMutation.isPending ? 'animate-pulse text-yellow-400' : ''}`} /> 
+          {scanAllMutation.isPending ? 'Starting...' : 'Run All Now'}
         </GlowingButton>
       </div>
 

@@ -1,7 +1,7 @@
 /** SportShield AI — Global Violation Map Page */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Globe, MapPin, AlertTriangle, Shield, Eye, ExternalLink, Clock, Zap } from 'lucide-react';
+import { Globe, MapPin, AlertTriangle, Shield, Eye, ExternalLink, Clock, Zap, Plus, Minus } from 'lucide-react';
 import { GlassCard } from '../components/shared/GlassCard';
 import { PageTransition } from '../components/shared/PageTransition';
 
@@ -49,6 +49,22 @@ export default function GlobalMap() {
   const [selectedViolation, setSelectedViolation] = useState<ViolationPoint | null>(null);
   const [liveCount, setLiveCount] = useState(DEMO_VIOLATIONS.length);
   const [pulseKey, setPulseKey] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-zoom to city when selected
+  useEffect(() => {
+    if (selectedViolation) {
+      setZoom(6); // Deep zoom into the city
+    } else {
+      setZoom(1); // Reset map
+    }
+  }, [selectedViolation]);
+
+  // Compute transform origin based on selected city coordinates
+  const mapOrigin = selectedViolation 
+    ? `${(toSvgCoords(selectedViolation.lat, selectedViolation.lng).x / 1000) * 100}% ${(toSvgCoords(selectedViolation.lat, selectedViolation.lng).y / 500) * 100}%`
+    : 'center center';
 
   // Simulate live detection pulse
   useEffect(() => {
@@ -105,8 +121,9 @@ export default function GlobalMap() {
       {/* Map + Detail Split */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Map Card */}
-        <GlassCard noPadding className="xl:col-span-2 overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#1F2937] flex items-center justify-between">
+        <GlassCard noPadding className="xl:col-span-2 overflow-hidden h-full">
+          <div className="flex flex-col h-full">
+            <div className="px-6 py-4 border-b border-[#1F2937] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
               <Globe className="w-4 h-4 text-cyan-400" />
               <h3 className="text-sm font-semibold text-white">Violation Heatmap</h3>
@@ -120,28 +137,37 @@ export default function GlobalMap() {
               ))}
             </div>
           </div>
-          <div className="relative bg-[#0B0F19] p-4" style={{ minHeight: 420 }}>
-            {/* SVG World Map (simplified dot map) */}
-            <svg viewBox="0 0 1000 500" className="w-full h-full" style={{ minHeight: 400 }}>
-              {/* Grid lines */}
-              {Array.from({ length: 19 }, (_, i) => (
-                <line key={`vl-${i}`} x1={i * 55.5} y1={0} x2={i * 55.5} y2={500} stroke="#1F2937" strokeWidth={0.5} strokeDasharray="4 8" />
-              ))}
-              {Array.from({ length: 10 }, (_, i) => (
-                <line key={`hl-${i}`} x1={0} y1={i * 55.5} x2={1000} y2={i * 55.5} stroke="#1F2937" strokeWidth={0.5} strokeDasharray="4 8" />
-              ))}
+          <div ref={mapContainerRef} className="relative bg-[#0B0F19] overflow-hidden flex-1 w-full min-h-[420px]">
+            {/* Zoomable Container */}
+            <motion.div 
+              drag={zoom > 1}
+              dragConstraints={{ top: -200 * zoom, bottom: 200 * zoom, left: -500 * zoom, right: 500 * zoom }}
+              dragElastic={0.1}
+              className={`absolute inset-0 w-full h-full ${zoom > 1 ? 'cursor-grab active:cursor-grabbing' : ''}`}
+              animate={{ scale: zoom }}
+              style={{ transformOrigin: mapOrigin }}
+              transition={{ type: "spring", stiffness: 200, damping: 25 }}
+            >
+              <svg viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid slice" className="w-full h-full">
+                {/* Grid lines */}
+                {Array.from({ length: 19 }, (_, i) => (
+                  <line key={`vl-${i}`} x1={i * 55.5} y1={0} x2={i * 55.5} y2={500} stroke="#1F2937" strokeWidth={0.5} strokeDasharray="4 8" />
+                ))}
+                {Array.from({ length: 10 }, (_, i) => (
+                  <line key={`hl-${i}`} x1={0} y1={i * 55.5} x2={1000} y2={i * 55.5} stroke="#1F2937" strokeWidth={0.5} strokeDasharray="4 8" />
+                ))}
 
-              {/* Continent outlines (simplified dots) */}
-              {[
-                /* North America */ { cx: 200, cy: 160 }, { cx: 220, cy: 150 }, { cx: 240, cy: 170 }, { cx: 180, cy: 180 }, { cx: 260, cy: 160 },
-                /* South America */ { cx: 280, cy: 300 }, { cx: 270, cy: 320 }, { cx: 290, cy: 340 }, { cx: 275, cy: 280 },
-                /* Europe */ { cx: 490, cy: 140 }, { cx: 510, cy: 130 }, { cx: 520, cy: 150 }, { cx: 480, cy: 160 },
-                /* Africa */ { cx: 500, cy: 250 }, { cx: 520, cy: 270 }, { cx: 490, cy: 290 }, { cx: 510, cy: 230 },
-                /* Asia */ { cx: 650, cy: 160 }, { cx: 700, cy: 170 }, { cx: 750, cy: 150 }, { cx: 680, cy: 190 }, { cx: 720, cy: 200 },
-                /* Australia */ { cx: 800, cy: 320 }, { cx: 820, cy: 310 }, { cx: 810, cy: 340 },
-              ].map((dot, i) => (
-                <circle key={`land-${i}`} cx={dot.cx} cy={dot.cy} r={12} fill="#1F2937" opacity={0.3} />
-              ))}
+              {/* Faint World Map Background */}
+              <image 
+                href="https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg" 
+                x="0" 
+                y="-20" 
+                width="1000" 
+                height="540" 
+                opacity="0.1" 
+                className="grayscale invert opacity-20"
+                preserveAspectRatio="none" 
+              />
 
               {/* Violation Points */}
               {DEMO_VIOLATIONS.map((v, i) => {
@@ -172,6 +198,31 @@ export default function GlobalMap() {
                 );
               })}
             </svg>
+            </motion.div>
+          </div>
+          {/* Map Footer Controls */}
+          <div className="px-6 py-3 border-t border-[#1F2937] bg-[#111827] flex items-center justify-between shrink-0 mt-auto">
+            <span className="text-xs text-zinc-500 font-medium">Interactive Map Controls</span>
+            <div className="flex items-center gap-1 bg-[#0B0F19] p-1 rounded-lg border border-[#1F2937]">
+              <button 
+                onClick={() => setZoom(z => Math.max(1, z - 0.5))} 
+                className="p-1.5 hover:bg-[#1F2937] rounded-md text-zinc-400 hover:text-white transition-colors focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                aria-label="Zoom Out"
+              >
+                <Minus className="w-4 h-4" />
+              </button>
+              <span className="text-[11px] font-mono text-zinc-300 w-10 text-center select-none">
+                {Math.round(zoom * 100)}%
+              </span>
+              <button 
+                onClick={() => setZoom(z => Math.min(8, z + 0.5))} 
+                className="p-1.5 hover:bg-[#1F2937] rounded-md text-zinc-400 hover:text-white transition-colors focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                aria-label="Zoom In"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
           </div>
         </GlassCard>
 

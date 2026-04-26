@@ -151,7 +151,7 @@ export default function Dashboard() {
         <div className="xl:col-span-2 flex flex-col gap-6">
           <GlassCard noPadding className="flex-1 flex flex-col min-h-[500px]">
             {/* Feed Header */}
-            <div className="px-6 py-5 border-b border-[#1F2937] flex flex-wrap items-center justify-between gap-4 bg-[#111827]">
+            <div className="px-6 py-5 border-b border-white/5 flex flex-wrap items-center justify-between gap-4 bg-transparent">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
@@ -159,7 +159,7 @@ export default function Dashboard() {
                 </div>
                 <h2 className="text-lg font-semibold text-white">Live Violation Network</h2>
               </div>
-              <div className="flex items-center gap-2 bg-[#0B0F19] p-1 rounded-lg border border-[#1F2937]" role="tablist" aria-label="Severity Filters">
+              <div className="flex items-center gap-2 bg-black/20 p-1 rounded-lg border border-white/5" role="tablist" aria-label="Severity Filters">
                 {filterTabs.map(tab => (
                   <button
                     key={tab}
@@ -168,8 +168,8 @@ export default function Dashboard() {
                     onClick={() => setSeverityFilter(tab)}
                     className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 ${
                       severityFilter === tab
-                        ? 'bg-[#111827] text-white shadow-md border border-[#374151]'
-                        : 'text-zinc-400 hover:text-white hover:bg-[#111827]'
+                        ? 'bg-white/10 text-white shadow-md border border-white/10'
+                        : 'text-zinc-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     {tab.toUpperCase()}
@@ -182,7 +182,7 @@ export default function Dashboard() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden p-2" aria-live="polite" aria-atomic="false">
               {violationsLoading ? (
                 <div className="flex flex-col h-full space-y-0 relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#111827] z-10 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0B0F19]/50 z-10 pointer-events-none" />
                   {Array.from({ length: 4 }).map((_, i) => (
                     <ListItemSkeleton key={i} />
                   ))}
@@ -200,14 +200,14 @@ export default function Dashboard() {
                       animate={{ opacity: 1, x: 0, height: 'auto' }}
                       exit={{ opacity: 0, scale: 0.95, height: 0 }}
                       transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="group relative px-4 py-4 mb-2 rounded-xl border border-transparent hover:border-[#374151] hover:bg-[#1F2937] transition-all duration-300"
+                      className="group relative px-4 py-4 mb-2 rounded-xl border border-transparent hover:border-white/10 hover:bg-white/5 transition-all duration-300"
                     >
                       {/* Left glow accent on hover based on severity */}
                       <div className={`absolute left-0 top-3 bottom-3 w-1 rounded-r-full opacity-0 group-hover:opacity-100 transition-opacity bg-${v.severity === 'high' ? 'red' : v.severity === 'medium' ? 'amber' : 'cyan'}-500 shadow-[0_0_8px_rgba(255,255,255,0.2)]`} />
                       
                       <div className="flex items-start gap-4">
                         {/* Avatar / Thumbnail */}
-                        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-[#0B0F19] border border-[#1F2937] shadow-inner flex-shrink-0">
+                        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-black/20 border border-white/5 shadow-inner flex-shrink-0">
                           {v.thumbnail_url ? (
                             <img src={v.thumbnail_url} alt="Thumbnail" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
                           ) : (
