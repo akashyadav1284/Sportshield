@@ -36,22 +36,24 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str):
     """Helper to set secure HTTP-only cookies for auth tokens."""
-    # Access token: expires in 15 mins (match ACCESS_TOKEN_EXPIRE_MINUTES)
+    is_prod = settings.CORS_ORIGINS != "http://localhost:5173"
+    
+    # Access token: expires in 30 mins
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # Set to True in production (HTTPS)
-        samesite="lax",
-        max_age=15 * 60,
+        secure=is_prod,           # True for HTTPS in production
+        samesite="none" if is_prod else "lax",  # "none" required for cross-origin
+        max_age=30 * 60,
     )
     # Refresh token: expires in 7 days
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # Set to True in production
-        samesite="lax",
+        secure=is_prod,
+        samesite="none" if is_prod else "lax",
         max_age=7 * 24 * 60 * 60,
     )
 
@@ -259,8 +261,9 @@ async def refresh(request: Request, response: Response, db: AsyncSession = Depen
 @router.post("/logout", response_model=MessageResponse)
 async def logout(response: Response):
     """Clear http-only secure cookies to logout."""
-    response.delete_cookie(key="access_token", httponly=True, samesite="lax")
-    response.delete_cookie(key="refresh_token", httponly=True, samesite="lax")
+    is_prod = settings.CORS_ORIGINS != "http://localhost:5173"
+    response.delete_cookie(key="access_token", httponly=True, secure=is_prod, samesite="none" if is_prod else "lax")
+    response.delete_cookie(key="refresh_token", httponly=True, secure=is_prod, samesite="none" if is_prod else "lax")
     return MessageResponse(message="Successfully logged out")
 
 
