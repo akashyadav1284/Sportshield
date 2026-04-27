@@ -39,11 +39,24 @@ const DEMO_TAKEDOWNS: Takedown[] = [
 ];
 
 export default function Takedowns() {
-  const [takedowns] = useState<Takedown[]>(DEMO_TAKEDOWNS);
+  const [takedowns, setTakedowns] = useState<Takedown[]>(DEMO_TAKEDOWNS);
   const [showGenerator, setShowGenerator] = useState(false);
   const [filter, setFilter] = useState<TakedownStatus | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // New Takedown Form State
+  const [newUrl, setNewUrl] = useState('');
+  const [newPlatform, setNewPlatform] = useState('youtube');
+  const [newAsset, setNewAsset] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filtered = filter === 'all' ? takedowns : takedowns.filter(t => t.status === filter);
+  const filtered = takedowns.filter(t => {
+    const matchesFilter = filter === 'all' || t.status === filter;
+    const matchesSearch = t.assetName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          t.violationUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          t.id.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
   const counts = {
     all: takedowns.length,
     draft: takedowns.filter(t => t.status === 'draft').length,
@@ -109,6 +122,35 @@ export default function Takedowns() {
     doc.save(`takedown-${t.id}.pdf`);
   };
 
+  const handleCreateTakedown = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUrl || !newAsset) return;
+
+    setIsSubmitting(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      const newTakedown: Takedown = {
+        id: `TD-${String(takedowns.length + 1).padStart(3, '0')}`,
+        violationUrl: newUrl,
+        platform: newPlatform,
+        assetName: newAsset,
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        confidence: Math.floor(Math.random() * (99 - 70 + 1) + 70) // Random confidence between 70 and 99
+      };
+
+      setTakedowns([newTakedown, ...takedowns]);
+      setIsSubmitting(false);
+      setShowGenerator(false);
+      
+      // Reset form
+      setNewUrl('');
+      setNewPlatform('youtube');
+      setNewAsset('');
+    }, 800);
+  };
+
   return (
     <PageTransition className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -141,8 +183,17 @@ export default function Takedowns() {
 
       {/* Takedown List */}
       <GlassCard noPadding>
-        <div className="px-6 py-4 border-b border-[#1F2937] bg-[#111827] rounded-t-2xl">
+        <div className="px-6 py-4 border-b border-[#1F2937] bg-[#111827] rounded-t-2xl flex flex-col sm:flex-row gap-4 justify-between items-center">
           <h3 className="text-sm font-semibold text-white">Takedown History</h3>
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search by ID, asset, or URL..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#0B0F19] border border-[#1F2937] rounded-lg pl-3 pr-3 py-1.5 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
+            />
+          </div>
         </div>
         <div className="divide-y divide-[#1F2937]">
           <AnimatePresence mode="popLayout">
@@ -195,6 +246,119 @@ export default function Takedowns() {
           )}
         </div>
       </GlassCard>
+
+      {/* New Takedown Modal */}
+      <AnimatePresence>
+        {showGenerator && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => !isSubmitting && setShowGenerator(false)}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-[#111827] border border-[#1F2937] rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-[#1F2937] flex items-center justify-between bg-[#111827]/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">Generate Notice</h2>
+                    <p className="text-xs text-zinc-400">Create a new DMCA takedown request</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => !isSubmitting && setShowGenerator(false)}
+                  className="p-2 text-zinc-400 hover:text-white hover:bg-[#1F2937] rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateTakedown} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">Target URL (Infringing Content)</label>
+                  <input
+                    type="url"
+                    required
+                    value={newUrl}
+                    onChange={(e) => setNewUrl(e.target.value)}
+                    placeholder="https://example.com/pirated-content"
+                    className="w-full bg-[#0B0F19] border border-[#1F2937] rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Platform</label>
+                    <select
+                      value={newPlatform}
+                      onChange={(e) => setNewPlatform(e.target.value)}
+                      className="w-full bg-[#0B0F19] border border-[#1F2937] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-colors appearance-none"
+                    >
+                      <option value="youtube">YouTube</option>
+                      <option value="twitter">Twitter / X</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="web">Other Website</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-400 mb-1.5">Original Asset Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newAsset}
+                      onChange={(e) => setNewAsset(e.target.value)}
+                      placeholder="e.g. Q4 Highlight Reel"
+                      className="w-full bg-[#0B0F19] border border-[#1F2937] rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3 border-t border-[#1F2937] mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowGenerator(false)}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 hover:text-white hover:bg-[#1F2937] transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <GlowingButton
+                    variant="primary"
+                    size="sm"
+                    className="w-32 justify-center"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                          className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full"
+                        />
+                        Creating...
+                      </span>
+                    ) : (
+                      'Create Draft'
+                    )}
+                  </GlowingButton>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </PageTransition>
   );
 }

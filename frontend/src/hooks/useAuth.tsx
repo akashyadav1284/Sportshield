@@ -8,7 +8,6 @@ interface AuthContextType {
   isLoading: boolean;
   isLoggedIn: boolean;
   login: (creds: LoginCredentials) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -43,16 +42,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (regData: RegisterData) => {
-    setIsLoading(true);
-    try {
-      await api.post('/auth/register', regData);
-      await login({ email: regData.email, password: regData.password });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -63,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isLoggedIn: !!user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, isLoggedIn: !!user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

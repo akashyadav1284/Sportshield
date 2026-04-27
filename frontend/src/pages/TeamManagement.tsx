@@ -36,10 +36,22 @@ const DEMO_TEAM: TeamMember[] = [
 ];
 
 export default function TeamManagement() {
-  const [team] = useState(DEMO_TEAM);
+  const [team, setTeam] = useState<TeamMember[]>(DEMO_TEAM);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<Role>('analyst');
+  const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
+
+  const handleDelete = (id: string) => {
+    setTeam(team.filter(m => m.id !== id));
+  };
+
+  const handleUpdateMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMember) return;
+    setTeam(team.map(m => m.id === editingMember.id ? editingMember : m));
+    setEditingMember(null);
+  };
 
   const stats = {
     total: team.length,
@@ -202,10 +214,14 @@ export default function TeamManagement() {
 
                 {/* Actions */}
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-[#1F2937] transition-colors" title="Edit">
+                  <button 
+                    onClick={() => setEditingMember(member)}
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-[#1F2937] transition-colors" title="Edit">
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
-                  <button className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Remove">
+                  <button 
+                    onClick={() => handleDelete(member.id)}
+                    className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Remove">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -214,6 +230,107 @@ export default function TeamManagement() {
           })}
         </div>
       </GlassCard>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {editingMember && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setEditingMember(null)}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-[#111827] border border-[#1F2937] rounded-2xl shadow-2xl overflow-hidden z-10 flex flex-col"
+            >
+              <div className="px-6 py-4 border-b border-[#1F2937] flex items-center justify-between bg-[#111827]/50">
+                <h2 className="text-lg font-semibold text-white">Edit Team Member</h2>
+                <button 
+                  onClick={() => setEditingMember(null)}
+                  className="p-2 text-zinc-400 hover:text-white hover:bg-[#1F2937] rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleUpdateMember} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingMember.name}
+                    onChange={(e) => setEditingMember({...editingMember, name: e.target.value})}
+                    className="w-full bg-[#0B0F19] border border-[#1F2937] rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={editingMember.email}
+                    onChange={(e) => setEditingMember({...editingMember, email: e.target.value})}
+                    className="w-full bg-[#0B0F19] border border-[#1F2937] rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1.5">Role</label>
+                  <div className="flex flex-col gap-2">
+                    {(['admin', 'analyst', 'viewer'] as Role[]).map(role => {
+                      const cfg = ROLE_CONFIG[role];
+                      return (
+                        <button
+                          key={role}
+                          type="button"
+                          onClick={() => setEditingMember({...editingMember, role})}
+                          className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                            editingMember.role === role 
+                              ? `bg-[#111827] border-${cfg.color.split(' ')[0].split('-')[1]}-500/30`
+                              : 'bg-[#0B0F19] border-[#1F2937] hover:border-[#374151]'
+                          }`}
+                        >
+                          <div className={`p-2 rounded-lg border ${cfg.color}`}>
+                            <cfg.icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className={`text-sm font-semibold ${editingMember.role === role ? 'text-white' : 'text-zinc-300'}`}>{cfg.label}</p>
+                            <p className="text-xs text-zinc-500">{cfg.description}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3 border-t border-[#1F2937] mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setEditingMember(null)}
+                    className="px-4 py-2 rounded-xl text-sm font-medium text-zinc-300 hover:text-white hover:bg-[#1F2937] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <GlowingButton
+                    variant="primary"
+                    size="sm"
+                    className="px-6 justify-center"
+                  >
+                    Save Changes
+                  </GlowingButton>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </PageTransition>
   );
 }

@@ -6,7 +6,6 @@ import { AuthGuard } from './components/auth/AuthGuard';
 import { AppShell } from './components/layout/AppShell';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AssetLibrary from './pages/AssetLibrary';
 import AssetDetail from './pages/AssetDetail';
@@ -40,7 +39,6 @@ export default function App() {
           <AuthProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
               <Route element={<AuthGuard><AppShell /></AuthGuard>}>
                 <Route index element={<Dashboard />} />
                 <Route path="assets" element={<AssetLibrary />} />

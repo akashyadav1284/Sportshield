@@ -58,44 +58,10 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
     """Register a new user and create their organization."""
-    # Check if email already exists
-    result = await db.execute(select(User).where(User.email == data.email))
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered",
-        )
-
-    # Find demo org
-    demo_user_result = await db.execute(select(User).where(User.email == "demo@sportshield.ai"))
-    demo_user = demo_user_result.scalar_one_or_none()
-    
-    if demo_user:
-        org_id = demo_user.org_id
-    else:
-        # Fallback if seed hasn't run
-        org = Organization(
-            name="Premier FC",
-            email_domain="sportshield.ai",
-            plan="pro",
-        )
-        db.add(org)
-        await db.flush()
-        org_id = org.id
-
-    # Create user
-    user = User(
-        org_id=org_id,
-        email=data.email,
-        hashed_password=hash_password(data.password),
-        full_name=data.full_name,
-        role="admin",
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Public registration is disabled. Please contact an administrator to create an account.",
     )
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
-
-    return user
 
 
 from app.core.rate_limit import limiter

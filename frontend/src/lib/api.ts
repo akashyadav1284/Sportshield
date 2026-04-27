@@ -56,7 +56,7 @@ api.interceptors.response.use(
         isRefreshing = false;
         processQueue(refreshError as Error);
         // If refresh fails, we are truly logged out.
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        if (window.location.pathname !== '/login') {
            window.location.href = '/login';
         }
         return Promise.reject(refreshError);

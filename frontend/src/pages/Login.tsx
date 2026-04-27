@@ -240,10 +240,7 @@ export default function Login() {
               </button>
             </form>
 
-            <p className="mt-8 text-center text-sm text-zinc-500">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-cyan-500 font-semibold hover:text-cyan-400 transition-colors">Create Account</Link>
-            </p>
+
 
           </div>
 
