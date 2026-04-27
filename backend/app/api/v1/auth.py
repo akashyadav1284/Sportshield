@@ -1,5 +1,6 @@
 """SportShield AI — Auth API endpoints."""
 
+import os
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import RedirectResponse
@@ -36,13 +37,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 def _set_auth_cookies(response: Response, access_token: str, refresh_token: str):
     """Helper to set secure HTTP-only cookies for auth tokens."""
+    is_production = os.getenv("ENVIRONMENT", "development") != "development"
     # Access token: expires in 15 mins (match ACCESS_TOKEN_EXPIRE_MINUTES)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # Set to True in production (HTTPS)
-        samesite="lax",
+        secure=is_production,
+        samesite="none" if is_production else "lax",
         max_age=15 * 60,
     )
     # Refresh token: expires in 7 days
@@ -50,8 +52,8 @@ def _set_auth_cookies(response: Response, access_token: str, refresh_token: str)
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=False,  # Set to True in production
-        samesite="lax",
+        secure=is_production,
+        samesite="none" if is_production else "lax",
         max_age=7 * 24 * 60 * 60,
     )
 
@@ -240,7 +242,7 @@ async def google_auth_callback(code: str, response: Response, db: AsyncSession =
     refresh_token = create_refresh_token(token_payload)
 
     # 5. Create redirect response and set cookies on it
-    redirect_res = RedirectResponse(url="http://localhost:5173/")
+    redirect_res = RedirectResponse(url=f"{settings.FRONTEND_URL}/")
     _set_auth_cookies(redirect_res, access_token, refresh_token)
 
     return redirect_res
