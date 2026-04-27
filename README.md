@@ -59,6 +59,20 @@ Password: Demo1234!
 3. **FAISS Index** — Exact nearest-neighbor search (IndexFlatL2)
 4. **Video Processing** — Keyframe extraction every 2s via OpenCV/FFmpeg
 
+## How It Works (End-to-End)
+
+SportShield AI operates continuously in the background to protect your intellectual property. Here is the step-by-step workflow:
+
+1. **Upload & Storage**: You upload a protected asset (image or video) via the React dashboard. The asset is securely saved to local storage (or S3).
+2. **AI Fingerprinting**: A Celery background worker processes the asset, generating a Perceptual Hash (pHash) and a 512-dimensional CLIP semantic embedding. This creates a unique mathematical "fingerprint" for the asset.
+3. **Continuous Scanning**: Scheduled background jobs query the internet (Google Images, Bing, YouTube) every 30 minutes searching for the asset's keywords or visual similarities.
+4. **Two-Stage Detection**: 
+   - **Stage 1 (Fast)**: Candidates are filtered by pHash distance (detects exact or slightly cropped copies).
+   - **Stage 2 (Deep)**: Surviving candidates are analyzed via cosine similarity against the CLIP FAISS index (detects semantic copies, altered images, and text overlays).
+5. **Violation Scoring**: The system assigns a confidence score (e.g., 94%) and a severity tier (HIGH, MEDIUM, LOW) based on the combined AI similarities.
+6. **Real-Time Alerting**: If a match is found, the system instantly pushes a WebSocket event to your dashboard, triggers a toast notification, and sends an email via SendGrid.
+7. **Takedown & Management**: You review the evidence on the dashboard and use the built-in Takedowns module to generate and track DMCA notices. Team Admins can manage access and roles seamlessly.
+
 ## Scanning Engines
 
 - Google Custom Search JSON API

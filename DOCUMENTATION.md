@@ -719,13 +719,13 @@ Account and organization management:
 
 | Page | Description |
 |---|---|
-| **Takedowns** | DMCA takedown request tracker with status workflow |
+| **Takedowns** | DMCA takedown request tracker with status workflow, dynamic manual entry modal, and full-text search filtering |
 | **Scheduled Scans** | Configure scan frequency and sources |
 | **Global Map** | World map visualization of threat geography |
 | **Shield AI** | Conversational AI assistant for platform queries |
 | **Reports** | Generate and download PDF/CSV analytics reports |
 | **Activity Log** | Full audit trail of all user and system actions |
-| **Team Management** | Invite users, assign roles, deactivate accounts |
+| **Team Management** | RBAC interface to invite users, assign roles, and fully edit/remove existing team members with real-time UI updates |
 | **API Keys** | Generate and manage programmatic API access keys |
 | **Pricing** | Subscription plan comparison and upgrade flow |
 
