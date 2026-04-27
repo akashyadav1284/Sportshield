@@ -1,0 +1,52 @@
+# Render Blueprint — Deploy SportShield AI with one click
+# https://render.com/docs/blueprint-spec
+
+services:
+  # FastAPI Backend
+  - type: web
+    name: sportshield-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.render
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sportshield-db
+          property: connectionString
+          # Note: You need to manually change postgres:// to postgresql+asyncpg:// after deploy
+      - key: DATABASE_URL_SYNC
+        fromDatabase:
+          name: sportshield-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: sportshield-redis
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: STORAGE_BACKEND
+        value: local
+      - key: LOCAL_STORAGE_PATH
+        value: /app/uploads
+      - key: CORS_ORIGINS
+        value: "https://sportshield-ai.vercel.app"
+    healthCheckPath: /health
+
+databases:
+  - name: sportshield-db
+    plan: free
+    databaseName: sportshield
+    user: sportshield
+
+  - name: sportshield-redis
+    plan: free
+    type: redis
+    maxmemoryPolicy: allkeys-lru

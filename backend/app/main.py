@@ -25,14 +25,21 @@ async def lifespan(app: FastAPI):
     Path(settings.LOCAL_STORAGE_PATH).mkdir(parents=True, exist_ok=True)
     Path(settings.FAISS_INDEX_PATH).parent.mkdir(parents=True, exist_ok=True)
     
-    # Initialize Redis caching
-    redis = aioredis.from_url(settings.REDIS_URL, encoding="utf8", decode_responses=True)
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    # Initialize Redis caching (graceful — app works without it)
+    redis = None
+    try:
+        redis = aioredis.from_url(settings.REDIS_URL, encoding="utf8", decode_responses=True)
+        await redis.ping()
+        FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+        print("SportShield AI started with Redis caching initialized")
+    except Exception as e:
+        print(f"Warning: Redis unavailable ({e}). App running without cache.")
     
-    print("SportShield AI started with Redis caching initialized")
     yield
+    
     # Shutdown
-    await redis.close()
+    if redis:
+        await redis.close()
     print("SportShield AI shutting down")
 
 app = FastAPI(
