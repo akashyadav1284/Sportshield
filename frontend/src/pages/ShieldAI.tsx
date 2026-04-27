@@ -1,8 +1,9 @@
 /** SportShield AI — Shield AI Chatbot Page */
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Send, User, Sparkles, Shield, TrendingUp, AlertTriangle, Lightbulb, Copy, Check } from 'lucide-react';
+import { Bot, Send, User, Sparkles, Shield, TrendingUp, AlertTriangle, Lightbulb, Copy, Check, Zap } from 'lucide-react';
 import { PageTransition } from '../components/shared/PageTransition';
+import { mockAssets, mockViolations, platformStats } from '../lib/mockDataset';
 
 interface Message {
   id: string;
@@ -18,145 +19,160 @@ const SUGGESTED_PROMPTS = [
   { text: 'Show me a summary of my IP protection status', icon: Shield },
 ];
 
-// Smart response engine — generates contextual responses
-function generateResponse(query: string): string {
+// --- NLP Engine ---
+function generateDynamicResponse(query: string, history: Message[]): string {
   const q = query.toLowerCase();
 
-  if (q.includes('violation') && (q.includes('week') || q.includes('today') || q.includes('recent'))) {
-    return `📊 **Violation Summary — Last 7 Days**
+  // Entity Extraction
+  const hasYouTube = q.includes('youtube');
+  const hasTwitter = q.includes('twitter');
+  const hasTikTok = q.includes('tiktok');
+  
+  // 1. Violation Queries
+  if (q.includes('violation') || q.includes('how many')) {
+    let filtered = mockViolations;
+    let context = "all platforms";
+    
+    if (hasYouTube) { filtered = filtered.filter(v => v.platform === 'YouTube'); context = "YouTube"; }
+    else if (hasTwitter) { filtered = filtered.filter(v => v.platform === 'Twitter'); context = "Twitter"; }
+    else if (hasTikTok) { filtered = filtered.filter(v => v.platform === 'TikTok'); context = "TikTok"; }
 
-Based on my analysis of your protection network:
+    const highSeverity = filtered.filter(v => v.severity === 'High').length;
+    const totalViews = filtered.reduce((acc, v) => acc + v.views, 0);
+    const totalImpact = filtered.reduce((acc, v) => acc + v.revenueImpact, 0);
 
-- **Total Violations Detected**: 8
-- **High Severity**: 3 (YouTube: 2, Twitter: 1)
-- **Medium Severity**: 3 (Web: 2, Instagram: 1)
-- **Low Severity**: 2 (TikTok fan reposts)
+    return `📊 **Violation Analysis — ${context}**
+    
+Based on my real-time scan of the dataset:
+- **Total Violations Detected**: ${filtered.length}
+- **High Severity**: ${highSeverity}
+- **Total Exposure (Views)**: ${totalViews.toLocaleString()}
+- **Est. Revenue Impact**: $${totalImpact.toLocaleString()}
 
-**Key Insight**: YouTube remains your primary threat vector, accounting for 37.5% of all violations. I recommend increasing scan frequency for your Champions League highlights to **real-time** monitoring.
-
-Your resolved rate this week is **50%** — above industry average of 35%. Good work! 🛡️`;
+**Insight**: ${highSeverity > 0 ? 'You have high-severity violations that need immediate attention.' : 'Threat levels are currently manageable.'}
+${hasYouTube ? '\nWant me to generate a batch takedown for these YouTube links?\n[ACTION:TAKEDOWN_YOUTUBE]' : ''}`;
   }
 
-  if (q.includes('most targeted') || q.includes('most pirated') || q.includes('which asset')) {
-    return `🎯 **Most Targeted Asset Analysis**
+  // 2. Targeted Asset Analysis
+  if (q.includes('most targeted') || q.includes('vulnerable') || q.includes('asset')) {
+    const sortedAssets = [...mockAssets].sort((a, b) => b.totalViolations - a.totalViolations);
+    const topAsset = sortedAssets[0];
+    const relatedViolations = mockViolations.filter(v => v.assetId === topAsset.id);
+    const topPlatform = relatedViolations.length > 0 ? relatedViolations[0].platform : 'Unknown';
 
-Your most vulnerable asset is:
+    return `🎯 **Asset Threat Intelligence**
 
-**Champions League Final Highlights**
-- Violations detected: 12 (all-time)
-- Recent spike: 5 new violations in last 48 hours
-- Primary platforms: YouTube (58%), Twitter (25%), Web (17%)
-- Threat Score: **87/100** 🔴
+Your most targeted asset right now is **"${topAsset.name}"**.
 
-**Why it's targeted**: High-value content from a recent major event with massive search volume. Fan accounts and unauthorized sports aggregators are the main infringers.
+**Key Metrics:**
+- **Threat Score**: ${topAsset.threatScore}/100 ${topAsset.threatScore > 80 ? '🔴' : '🟡'}
+- **Total Violations**: ${topAsset.totalViolations}
+- **Current Scan Frequency**: ${topAsset.scanFrequency}
+- **Primary Leaking Platform**: ${topPlatform}
 
-**Recommended Actions**:
-1. ⚡ Switch to real-time scanning (currently set to hourly)
-2. 📝 Batch-generate takedown notices for the 5 pending violations
-3. 🔒 Add invisible watermarking before next distribution
-4. 📢 File Content ID claim on YouTube for proactive blocking`;
+**Recommended Action**: Switch this asset to Real-Time scanning to catch re-uploads instantly.
+[ACTION:UPGRADE_SCAN]`;
   }
 
-  if (q.includes('takedown') && (q.includes('strategy') || q.includes('youtube'))) {
-    return `📋 **YouTube Takedown Strategy**
+  // 3. Takedown Strategy
+  if (q.includes('takedown') || q.includes('strategy') || q.includes('action')) {
+    const pendingYouTube = mockViolations.filter(v => v.platform === 'YouTube' && v.status === 'Pending');
+    
+    return `📋 **Automated Takedown Strategy**
 
-Based on your violation history, here's an optimized enforcement workflow:
+I have analyzed the current threat landscape. Here is the optimal strategy:
 
-**Step 1: Prioritize by Impact**
-- Focus on channels with >1,000 subscribers first (higher reach = more damage)
-- Current high-priority targets: 3 channels with combined 45K subscribers
+**Step 1: High-Impact Strikes**
+- You have ${pendingYouTube.length} pending High-Severity violations on YouTube.
+- Filing DMCA notices for these will protect approximately $${pendingYouTube.reduce((acc, v) => acc + v.revenueImpact, 0).toLocaleString()} in revenue.
 
-**Step 2: Use Content ID (Recommended)**
-- You have 4 eligible assets for YouTube's Content ID system
-- Expected result: Auto-block or monetize future uploads within 24 hours
+**Step 2: Automated Content ID**
+- I recommend registering the top 2 vulnerable assets with YouTube Content ID for auto-blocking.
 
-**Step 3: DMCA Batch Filing**
-- I can generate 5 DMCA notices right now — ready for one-click submission
-- Average YouTube response time: 48–72 hours
-
-**Step 4: Monitor Repeat Offenders**
-- 2 accounts have multiple violations — consider escalation to YouTube's Trust & Safety team
-
-**Expected Recovery**: Based on similar cases, you should see a **78% takedown rate** within 5 business days.
-
-Want me to generate the batch DMCA notices now?`;
+Would you like me to execute the batch DMCA takedowns now?
+[ACTION:EXECUTE_BATCH]`;
   }
 
+  // 4. Protection Summary
   if (q.includes('summary') || q.includes('status') || q.includes('overview')) {
-    return `🛡️ **SportShield AI — Protection Status Summary**
+    const vulnerableCount = mockAssets.filter(a => a.status === 'vulnerable').length;
 
-**Organization**: SportShield Enterprise
-**Plan**: Pro (Active)
+    return `🛡️ **Platform Protection Summary**
 
----
+Here is your live intelligence brief based on the SportShield dataset:
 
-**Assets Under Protection**: 15
-- Images: 8 | Videos: 5 | Logos: 2
+**Asset Health**
+- Total Protected: ${platformStats.totalProtected}
+- Currently Vulnerable: ${vulnerableCount} ⚠️
+- Active Scans: ${platformStats.activeScans}
 
-**Scan Coverage**:
-- Real-time: 3 assets
-- Hourly: 4 assets  
-- Daily: 5 assets
-- Weekly: 3 assets
+**Financial Security**
+- Estimated Saved Revenue: **$${platformStats.estimatedSavedRevenue.toLocaleString()}**
+- Resolution Rate: ${platformStats.resolutionRate}%
 
-**Threat Level**: 🟡 **MODERATE**
-- 4 active unresolved violations
-- 8 total violations detected (last 30 days)
-- 50% resolution rate
-
-**Financial Impact** (Estimated):
-- Unauthorized views this month: ~125,000
-- Estimated revenue loss: ~$2,400
-- Recovered through takedowns: ~$1,100
-
-**Top Recommendation**: Your Champions League content needs immediate attention. Switching to real-time monitoring and filing pending takedowns could reduce your exposure by 60%.`;
+**Next Steps**: I noticed ${vulnerableCount} assets are marked as vulnerable. We should address these immediately.`;
   }
 
-  if (q.includes('predict') || q.includes('forecast') || q.includes('future')) {
-    return `🔮 **Violation Forecast — Next 7 Days**
-
-Based on historical patterns and upcoming events:
-
-| Day | Predicted Violations | Confidence |
-|-----|---------------------|------------|
-| Mon | 2-3 | 85% |
-| Tue | 1-2 | 78% |
-| Wed | 3-5 | 72% |
-| Thu | 1-2 | 80% |
-| Fri | 2-3 | 75% |
-| Sat | 5-8 ⚠️ | 90% |
-| Sun | 4-6 ⚠️ | 88% |
-
-**Weekend spike predicted**: A major Premier League match on Saturday is likely to generate a surge in unauthorized highlight sharing.
-
-**Proactive measures**:
-1. Pre-upload all official highlights to trigger Content ID claims
-2. Set all match-related assets to real-time scanning by Friday
-3. Prepare batch takedown templates in advance`;
+  // 5. General / Contextual Chat memory check
+  const lastMessage = history.length > 0 ? history[history.length - 1].content.toLowerCase() : '';
+  if ((q.includes('yes') || q.includes('do it')) && (lastMessage.includes('takedown') || lastMessage.includes('youtube'))) {
+    return `✅ **Executing...**\n\nI have initialized the takedown sequence for the requested platforms. You will see updates in your Alerts dashboard shortly.`;
   }
 
-  // Default response
-  return `I'd be happy to help with that! Here's what I can assist you with:
+  return `I am Shield AI, your IP Protection Analyst. I am connected to the SportShield dataset.
 
-🔍 **Detection & Analysis**
-- "How many violations this week?"
-- "Which asset is most targeted?"
-- "Predict next week's violations"
+I can help you:
+1. Analyze violations by platform or asset.
+2. Calculate estimated revenue impacts.
+3. Generate automated takedown strategies.
+4. Adjust scan frequencies.
 
-📋 **Enforcement**
-- "Generate takedown strategy for YouTube"
-- "How to file a DMCA notice?"
-
-📊 **Reporting**
-- "Show protection status summary"
-- "What's my threat score?"
-
-💡 **Strategy**
-- "How to prevent future violations?"
-- "Best practices for IP protection"
-
-Try asking one of these questions, or describe what you'd like to know!`;
+How can I assist you today?`;
 }
+
+
+// --- UI Components ---
+
+// Renders markdown text and replaces [ACTION:X] with real interactive buttons
+const MessageRenderer = ({ content, onAction }: { content: string, onAction: (action: string) => void }) => {
+  const parts = content.split(/(\[ACTION:[A-Z_]+\])/g);
+
+  return (
+    <div className="text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap">
+      {parts.map((part, index) => {
+        if (part.startsWith('[ACTION:')) {
+          const action = part.replace('[ACTION:', '').replace(']', '');
+          let buttonText = 'Execute Action';
+          let icon = <Zap className="w-3 h-3" />;
+          
+          if (action === 'TAKEDOWN_YOUTUBE') { buttonText = 'Draft YouTube Takedowns'; icon = <AlertTriangle className="w-3 h-3" />; }
+          if (action === 'UPGRADE_SCAN') { buttonText = 'Enable Real-Time Scanning'; icon = <Shield className="w-3 h-3" />; }
+          if (action === 'EXECUTE_BATCH') { buttonText = 'Execute Batch DMCA'; icon = <Lightbulb className="w-3 h-3" />; }
+
+          return (
+            <div key={index} className="mt-3 mb-1">
+              <button
+                onClick={() => onAction(action)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500/20 to-violet-500/20 border border-cyan-500/30 text-cyan-300 rounded-lg hover:bg-cyan-500/30 transition-colors text-xs font-semibold"
+              >
+                {icon}
+                {buttonText}
+              </button>
+            </div>
+          );
+        }
+
+        // Basic markdown formatting for bold and lists
+        let formatted = part
+          .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
+          .replace(/- (.*?)\n/g, '<li class="ml-4 list-disc marker:text-cyan-500">$1</li>\n');
+
+        return <span key={index} dangerouslySetInnerHTML={{ __html: formatted }} />;
+      })}
+    </div>
+  );
+};
+
 
 export default function ShieldAI() {
   const [messages, setMessages] = useState<Message[]>([
@@ -165,9 +181,9 @@ export default function ShieldAI() {
       role: 'assistant',
       content: `👋 Welcome to **Shield AI** — your intelligent IP protection assistant.
 
-I can help you analyze violations, generate takedown strategies, provide threat insights, and answer questions about your assets.
+I am connected to the SportShield mock dataset and can provide highly accurate, data-driven intelligence. 
 
-What would you like to know?`,
+Try asking me to analyze specific platforms, check vulnerable assets, or calculate revenue impact!`,
       timestamp: new Date(),
     }
   ]);
@@ -187,21 +203,42 @@ What would you like to know?`,
     if (!text.trim()) return;
 
     const userMsg: Message = { id: `u-${Date.now()}`, role: 'user', content: text, timestamp: new Date() };
-    setMessages(prev => [...prev, userMsg]);
+    const currentHistory = [...messages, userMsg];
+    setMessages(currentHistory);
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI thinking delay
-    await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+    // Simulate AI thinking delay and dataset processing
+    await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
 
-    const response = generateResponse(text);
-    const aiMsg: Message = { id: `a-${Date.now()}`, role: 'assistant', content: response, timestamp: new Date() };
+    const responseContent = generateDynamicResponse(text, messages); // pass previous messages for context
+    
+    // Typewriter effect stream implementation
     setIsTyping(false);
-    setMessages(prev => [...prev, aiMsg]);
+    
+    const aiMsgId = `a-${Date.now()}`;
+    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: '', timestamp: new Date() }]);
+    
+    // Stream characters
+    let currentText = '';
+    const speed = 10; // ms per char
+    
+    for (let i = 0; i < responseContent.length; i++) {
+      await new Promise(r => setTimeout(r, speed));
+      currentText += responseContent[i];
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: currentText } : m));
+    }
+  };
+
+  const handleAction = async (action: string) => {
+    // Send a message acting as the user triggering the action
+    await sendMessage(`Execute action: ${action}`);
   };
 
   const copyMessage = (id: string, content: string) => {
-    navigator.clipboard.writeText(content);
+    // Strip action tags before copying
+    const cleanContent = content.replace(/\[ACTION:[A-Z_]+\]/g, '');
+    navigator.clipboard.writeText(cleanContent);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -218,12 +255,12 @@ What would you like to know?`,
             Shield AI
             <Sparkles className="w-5 h-5 text-cyan-400" />
           </h1>
-          <p className="text-xs text-zinc-400">AI-powered IP protection intelligence</p>
+          <p className="text-xs text-zinc-400">Advanced NLP Engine & Dataset Integration</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Online
+            Dataset Connected
           </span>
         </div>
       </div>
@@ -248,13 +285,15 @@ What would you like to know?`,
                   ? 'bg-cyan-500/10 border border-cyan-500/20 rounded-2xl rounded-tr-md px-4 py-3'
                   : 'bg-[#111827] border border-[#1F2937] rounded-2xl rounded-tl-md px-4 py-3'
               }`}>
-                <div className="text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{
-                    __html: msg.content
-                      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>')
-                      .replace(/\n/g, '<br/>')
-                  }}
-                />
+                
+                {msg.role === 'assistant' ? (
+                  <MessageRenderer content={msg.content} onAction={handleAction} />
+                ) : (
+                  <div className="text-sm text-zinc-200 leading-relaxed whitespace-pre-wrap">
+                    {msg.content}
+                  </div>
+                )}
+                
                 {msg.role === 'assistant' && msg.id !== 'welcome' && (
                   <button
                     onClick={() => copyMessage(msg.id, msg.content)}
@@ -321,7 +360,7 @@ What would you like to know?`,
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
-            placeholder="Ask Shield AI anything about your IP protection..."
+            placeholder="Ask Shield AI to analyze data, calculate impacts, or generate strategies..."
             className="flex-1 bg-transparent border-none outline-none text-sm text-zinc-100 placeholder-zinc-500"
           />
           <button
@@ -336,7 +375,7 @@ What would you like to know?`,
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] text-zinc-600 text-center mt-2">Shield AI provides insights based on your platform data. Responses are generated locally.</p>
+        <p className="text-[10px] text-zinc-600 text-center mt-2">Shield AI is using a simulated Local NLP Engine connected to platform mock datasets.</p>
       </div>
     </PageTransition>
   );
