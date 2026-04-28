@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     FAISS_INDEX_PATH: str = "./faiss_data/faiss_index.bin"
     FAISS_MAP_PATH: str = "./faiss_data/faiss_id_map.json"
 
+    # Google Gemini AI
+    GEMINI_API_KEY: str = ""
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str) -> str:

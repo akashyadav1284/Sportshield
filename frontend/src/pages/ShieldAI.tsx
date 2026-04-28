@@ -1,15 +1,16 @@
-/** SportShield AI — Shield AI Chatbot Page */
+/** SportShield AI — Shield AI Chatbot Page (Gemini-Powered) */
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Send, User, Sparkles, Shield, TrendingUp, AlertTriangle, Lightbulb, Copy, Check, Zap } from 'lucide-react';
+import { Bot, Send, User, Sparkles, Shield, TrendingUp, AlertTriangle, Lightbulb, Copy, Check, Zap, Wifi, WifiOff } from 'lucide-react';
 import { PageTransition } from '../components/shared/PageTransition';
-import { mockAssets, mockViolations, platformStats } from '../lib/mockDataset';
+import api from '../lib/api';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  source?: 'gemini' | 'fallback';
 }
 
 const SUGGESTED_PROMPTS = [
@@ -18,117 +19,6 @@ const SUGGESTED_PROMPTS = [
   { text: 'Generate a takedown strategy for YouTube', icon: Lightbulb },
   { text: 'Show me a summary of my IP protection status', icon: Shield },
 ];
-
-// --- NLP Engine ---
-function generateDynamicResponse(query: string, history: Message[]): string {
-  const q = query.toLowerCase();
-
-  // Entity Extraction
-  const hasYouTube = q.includes('youtube');
-  const hasTwitter = q.includes('twitter');
-  const hasTikTok = q.includes('tiktok');
-  
-  // 1. Violation Queries
-  if (q.includes('violation') || q.includes('how many')) {
-    let filtered = mockViolations;
-    let context = "all platforms";
-    
-    if (hasYouTube) { filtered = filtered.filter(v => v.platform === 'YouTube'); context = "YouTube"; }
-    else if (hasTwitter) { filtered = filtered.filter(v => v.platform === 'Twitter'); context = "Twitter"; }
-    else if (hasTikTok) { filtered = filtered.filter(v => v.platform === 'TikTok'); context = "TikTok"; }
-
-    const highSeverity = filtered.filter(v => v.severity === 'High').length;
-    const totalViews = filtered.reduce((acc, v) => acc + v.views, 0);
-    const totalImpact = filtered.reduce((acc, v) => acc + v.revenueImpact, 0);
-
-    return `📊 **Violation Analysis — ${context}**
-    
-Based on my real-time scan of the dataset:
-- **Total Violations Detected**: ${filtered.length}
-- **High Severity**: ${highSeverity}
-- **Total Exposure (Views)**: ${totalViews.toLocaleString()}
-- **Est. Revenue Impact**: $${totalImpact.toLocaleString()}
-
-**Insight**: ${highSeverity > 0 ? 'You have high-severity violations that need immediate attention.' : 'Threat levels are currently manageable.'}
-${hasYouTube ? '\nWant me to generate a batch takedown for these YouTube links?\n[ACTION:TAKEDOWN_YOUTUBE]' : ''}`;
-  }
-
-  // 2. Targeted Asset Analysis
-  if (q.includes('most targeted') || q.includes('vulnerable') || q.includes('asset')) {
-    const sortedAssets = [...mockAssets].sort((a, b) => b.totalViolations - a.totalViolations);
-    const topAsset = sortedAssets[0];
-    const relatedViolations = mockViolations.filter(v => v.assetId === topAsset.id);
-    const topPlatform = relatedViolations.length > 0 ? relatedViolations[0].platform : 'Unknown';
-
-    return `🎯 **Asset Threat Intelligence**
-
-Your most targeted asset right now is **"${topAsset.name}"**.
-
-**Key Metrics:**
-- **Threat Score**: ${topAsset.threatScore}/100 ${topAsset.threatScore > 80 ? '🔴' : '🟡'}
-- **Total Violations**: ${topAsset.totalViolations}
-- **Current Scan Frequency**: ${topAsset.scanFrequency}
-- **Primary Leaking Platform**: ${topPlatform}
-
-**Recommended Action**: Switch this asset to Real-Time scanning to catch re-uploads instantly.
-[ACTION:UPGRADE_SCAN]`;
-  }
-
-  // 3. Takedown Strategy
-  if (q.includes('takedown') || q.includes('strategy') || q.includes('action')) {
-    const pendingYouTube = mockViolations.filter(v => v.platform === 'YouTube' && v.status === 'Pending');
-    
-    return `📋 **Automated Takedown Strategy**
-
-I have analyzed the current threat landscape. Here is the optimal strategy:
-
-**Step 1: High-Impact Strikes**
-- You have ${pendingYouTube.length} pending High-Severity violations on YouTube.
-- Filing DMCA notices for these will protect approximately $${pendingYouTube.reduce((acc, v) => acc + v.revenueImpact, 0).toLocaleString()} in revenue.
-
-**Step 2: Automated Content ID**
-- I recommend registering the top 2 vulnerable assets with YouTube Content ID for auto-blocking.
-
-Would you like me to execute the batch DMCA takedowns now?
-[ACTION:EXECUTE_BATCH]`;
-  }
-
-  // 4. Protection Summary
-  if (q.includes('summary') || q.includes('status') || q.includes('overview')) {
-    const vulnerableCount = mockAssets.filter(a => a.status === 'vulnerable').length;
-
-    return `🛡️ **Platform Protection Summary**
-
-Here is your live intelligence brief based on the SportShield dataset:
-
-**Asset Health**
-- Total Protected: ${platformStats.totalProtected}
-- Currently Vulnerable: ${vulnerableCount} ⚠️
-- Active Scans: ${platformStats.activeScans}
-
-**Financial Security**
-- Estimated Saved Revenue: **$${platformStats.estimatedSavedRevenue.toLocaleString()}**
-- Resolution Rate: ${platformStats.resolutionRate}%
-
-**Next Steps**: I noticed ${vulnerableCount} assets are marked as vulnerable. We should address these immediately.`;
-  }
-
-  // 5. General / Contextual Chat memory check
-  const lastMessage = history.length > 0 ? history[history.length - 1].content.toLowerCase() : '';
-  if ((q.includes('yes') || q.includes('do it')) && (lastMessage.includes('takedown') || lastMessage.includes('youtube'))) {
-    return `✅ **Executing...**\n\nI have initialized the takedown sequence for the requested platforms. You will see updates in your Alerts dashboard shortly.`;
-  }
-
-  return `I am Shield AI, your IP Protection Analyst. I am connected to the SportShield dataset.
-
-I can help you:
-1. Analyze violations by platform or asset.
-2. Calculate estimated revenue impacts.
-3. Generate automated takedown strategies.
-4. Adjust scan frequencies.
-
-How can I assist you today?`;
-}
 
 
 // --- UI Components ---
@@ -179,17 +69,19 @@ export default function ShieldAI() {
     {
       id: 'welcome',
       role: 'assistant',
-      content: `👋 Welcome to **Shield AI** — your intelligent IP protection assistant.
+      content: `👋 Welcome to **Shield AI** — your intelligent IP protection assistant, powered by **Google Gemini**.
 
-I am connected to the SportShield mock dataset and can provide highly accurate, data-driven intelligence. 
+I have access to your live SportShield platform data and can provide real-time, data-driven intelligence. 
 
-Try asking me to analyze specific platforms, check vulnerable assets, or calculate revenue impact!`,
+Try asking me to analyze violations, check vulnerable assets, or generate takedown strategies!`,
       timestamp: new Date(),
+      source: 'gemini',
     }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [aiSource, setAiSource] = useState<'gemini' | 'fallback'>('gemini');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -208,35 +100,53 @@ Try asking me to analyze specific platforms, check vulnerable assets, or calcula
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI thinking delay and dataset processing
-    await new Promise(r => setTimeout(r, 600 + Math.random() * 800));
+    try {
+      // Build conversation history for the API (exclude welcome message)
+      const historyForApi = messages
+        .filter(m => m.id !== 'welcome')
+        .map(m => ({ role: m.role, content: m.content }));
 
-    const responseContent = generateDynamicResponse(text, messages); // pass previous messages for context
-    
-    // Typewriter effect stream implementation
-    setIsTyping(false);
-    
-    const aiMsgId = `a-${Date.now()}`;
-    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: '', timestamp: new Date() }]);
-    
-    // Stream characters
-    let currentText = '';
-    const speed = 10; // ms per char
-    
-    for (let i = 0; i < responseContent.length; i++) {
-      await new Promise(r => setTimeout(r, speed));
-      currentText += responseContent[i];
-      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: currentText } : m));
+      const { data } = await api.post('/ai/chat', {
+        message: text,
+        history: historyForApi,
+      });
+
+      const responseContent: string = data.response;
+      setAiSource(data.source);
+
+      // Typewriter effect stream
+      setIsTyping(false);
+      const aiMsgId = `a-${Date.now()}`;
+      setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: '', timestamp: new Date(), source: data.source }]);
+
+      // Stream characters
+      let currentText = '';
+      const speed = 8;
+
+      for (let i = 0; i < responseContent.length; i++) {
+        await new Promise(r => setTimeout(r, speed));
+        currentText += responseContent[i];
+        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: currentText } : m));
+      }
+    } catch (error) {
+      console.error('Shield AI error:', error);
+      setIsTyping(false);
+      setAiSource('fallback');
+      setMessages(prev => [...prev, {
+        id: `a-${Date.now()}`,
+        role: 'assistant',
+        content: '⚠️ I encountered an error connecting to the AI engine. Please try again in a moment.',
+        timestamp: new Date(),
+        source: 'fallback',
+      }]);
     }
   };
 
   const handleAction = async (action: string) => {
-    // Send a message acting as the user triggering the action
     await sendMessage(`Execute action: ${action}`);
   };
 
   const copyMessage = (id: string, content: string) => {
-    // Strip action tags before copying
     const cleanContent = content.replace(/\[ACTION:[A-Z_]+\]/g, '');
     navigator.clipboard.writeText(cleanContent);
     setCopiedId(id);
@@ -255,12 +165,19 @@ Try asking me to analyze specific platforms, check vulnerable assets, or calcula
             Shield AI
             <Sparkles className="w-5 h-5 text-cyan-400" />
           </h1>
-          <p className="text-xs text-zinc-400">Advanced NLP Engine & Dataset Integration</p>
+          <p className="text-xs text-zinc-400">Powered by Google Gemini · Live Data Intelligence</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Dataset Connected
+          <span className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${
+            aiSource === 'gemini' 
+              ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+              : 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+          }`}>
+            {aiSource === 'gemini' ? (
+              <><Wifi className="w-3 h-3" /> Gemini Connected</>
+            ) : (
+              <><WifiOff className="w-3 h-3" /> Fallback Mode</>
+            )}
           </span>
         </div>
       </div>
@@ -302,9 +219,20 @@ Try asking me to analyze specific platforms, check vulnerable assets, or calcula
                     {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   </button>
                 )}
-                <p className="text-[10px] text-zinc-600 mt-2">
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <p className="text-[10px] text-zinc-600">
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  {msg.role === 'assistant' && msg.source && msg.id !== 'welcome' && (
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                      msg.source === 'gemini' 
+                        ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
+                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    }`}>
+                      {msg.source === 'gemini' ? '✨ Gemini' : '⚙️ Fallback'}
+                    </span>
+                  )}
+                </div>
               </div>
               {msg.role === 'user' && (
                 <div className="w-8 h-8 rounded-lg bg-[#1F2937] border border-[#374151] flex items-center justify-center flex-shrink-0 mt-1">
@@ -360,14 +288,14 @@ Try asking me to analyze specific platforms, check vulnerable assets, or calcula
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
-            placeholder="Ask Shield AI to analyze data, calculate impacts, or generate strategies..."
+            placeholder="Ask Shield AI anything — powered by Google Gemini..."
             className="flex-1 bg-transparent border-none outline-none text-sm text-zinc-100 placeholder-zinc-500"
           />
           <button
             onClick={() => sendMessage(input)}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isTyping}
             className={`p-2 rounded-lg transition-all ${
-              input.trim()
+              input.trim() && !isTyping
                 ? 'bg-gradient-to-r from-cyan-500 to-violet-500 text-white hover:shadow-[0_0_15px_rgba(6,182,212,0.4)]'
                 : 'bg-[#1F2937] text-zinc-600 cursor-not-allowed'
             }`}
@@ -375,7 +303,7 @@ Try asking me to analyze specific platforms, check vulnerable assets, or calcula
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-[10px] text-zinc-600 text-center mt-2">Shield AI is using a simulated Local NLP Engine connected to platform mock datasets.</p>
+        <p className="text-[10px] text-zinc-600 text-center mt-2">Shield AI is powered by Google Gemini with live platform data integration.</p>
       </div>
     </PageTransition>
   );

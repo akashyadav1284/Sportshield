@@ -10,6 +10,7 @@ from app.api.v1.analytics import router as analytics_router
 from app.api.v1.scan import router as scan_router
 from app.api.v1.api_keys import router as api_keys_router
 from app.api.v1.reports import router as reports_router
+from app.api.v1.shield_ai import router as shield_ai_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -21,3 +22,4 @@ api_router.include_router(analytics_router)
 api_router.include_router(scan_router)
 api_router.include_router(api_keys_router)
 api_router.include_router(reports_router)
+api_router.include_router(shield_ai_router)
