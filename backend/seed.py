@@ -133,7 +133,7 @@ def seed():
                 tags=asset_data["tags"],
                 file_size_bytes=asset_data["file_size_bytes"],
                 storage_key=f"demo_asset_{i}.{'mp4' if asset_data['file_type'] == 'video' else 'jpg'}",
-                storage_url=f"/uploads/demo_asset_{i}.{'mp4' if asset_data['file_type'] == 'video' else 'jpg'}",
+                storage_url=f"https://picsum.photos/seed/asset{i}/800/600" if asset_data['file_type'] != 'video' else None,
                 phash=asset_data["phash"],
                 dhash=asset_data["dhash"],
                 faiss_index_id=i,
