@@ -142,14 +142,20 @@ async def _call_gemini(message: str, history: List[ChatMessage], data_context: s
         system_instruction=SYSTEM_PROMPT + data_context,
     )
 
-    # Build conversation history for Gemini
+    # Build and sanitize conversation history for Gemini (must alternate user/model)
     gemini_history = []
+    last_role = None
     for msg in (history or []):
         role = "user" if msg.role == "user" else "model"
-        gemini_history.append({"role": role, "parts": [msg.content]})
+        if role == last_role:
+            # If consecutive same-role messages, append to the previous instead of skipping
+            gemini_history[-1]["parts"][0] += f"\n\n{msg.content}"
+        else:
+            gemini_history.append({"role": role, "parts": [msg.content]})
+            last_role = role
 
     chat = model.start_chat(history=gemini_history)
-    response = chat.send_message(message)
+    response = await chat.send_message_async(message)
 
     return response.text
 
@@ -208,7 +214,11 @@ async def shield_ai_chat(
             return ChatResponse(response=response_text, source="gemini")
         except Exception as e:
             print(f"Gemini API error: {e}")
-            # Fall through to fallback
+            error_msg = str(e)
+            return ChatResponse(
+                response=f"⚠️ Gemini API Error: {error_msg}\n\nPlease check Render logs or API key.",
+                source="fallback"
+            )
 
     response_text = _fallback_response(request.message)
-    return ChatResponse(response=response_text, source="fallback")
+    return ChatResponse(response=f"Fallback active. API Key present: {bool(settings.GEMINI_API_KEY)}. Original: " + response_text, source="fallback")
