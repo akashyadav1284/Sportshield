@@ -37,10 +37,6 @@ async def trigger_full_scan(
 
     from app.tasks.scan_task import scan_asset
     
-    class DummyTask:
-        def retry(self, exc=None):
-            raise exc or Exception("Retry called on fallback task")
-
     for asset in assets:
         try:
             # Try to queue in Celery/Redis
@@ -48,7 +44,7 @@ async def trigger_full_scan(
         except Exception as e:
             print(f"Celery queue failed, using BackgroundTasks fallback: {e}")
             # Fallback to local background thread execution
-            background_tasks.add_task(scan_asset, DummyTask(), str(asset.id))
+            background_tasks.add_task(scan_asset, str(asset.id))
 
     return {
         "detail": f"Scan triggered for {len(assets)} assets",

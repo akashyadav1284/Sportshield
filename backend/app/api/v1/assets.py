@@ -137,15 +137,11 @@ async def upload_assets(
         # Dispatch fingerprinting task
         from app.tasks.fingerprint_task import fingerprint_asset
         
-        class DummyTask:
-            def retry(self, exc=None):
-                raise exc or Exception("Retry called on fallback task")
-
         try:
             fingerprint_asset.delay(str(asset.id))
         except Exception as e:
             print(f"Celery queue failed, using BackgroundTasks fallback for fingerprint: {e}")
-            background_tasks.add_task(fingerprint_asset, DummyTask(), str(asset.id))
+            background_tasks.add_task(fingerprint_asset, str(asset.id))
 
     await db.commit()
 
@@ -217,14 +213,10 @@ async def trigger_scan(
 
     from app.tasks.scan_task import scan_asset
     
-    class DummyTask:
-        def retry(self, exc=None):
-            raise exc or Exception("Retry called on fallback task")
-
     try:
         scan_asset.delay(str(asset.id))
     except Exception as e:
         print(f"Celery queue failed, using BackgroundTasks fallback for scan: {e}")
-        background_tasks.add_task(scan_asset, DummyTask(), str(asset.id))
+        background_tasks.add_task(scan_asset, str(asset.id))
 
     return {"detail": "Scan queued successfully", "asset_id": str(asset.id)}
