@@ -7,7 +7,12 @@ from pathlib import Path
 from typing import List, Tuple, Optional
 
 import numpy as np
-import faiss
+
+try:
+    import faiss
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
 
 from app.core.config import settings
 
@@ -39,6 +44,11 @@ class FAISSIndex:
         self.dimension = 512
         self.index_path = settings.FAISS_INDEX_PATH
         self.map_path = settings.FAISS_MAP_PATH
+
+        if not ML_AVAILABLE:
+            print("FAISSIndex initialized without ML capabilities (Free Tier).")
+            self.id_map: List[str] = []
+            return
 
         # Ensure directories exist
         Path(self.index_path).parent.mkdir(parents=True, exist_ok=True)
@@ -73,6 +83,11 @@ class FAISSIndex:
         Returns:
             FAISS internal ID (0-indexed position).
         """
+        if not ML_AVAILABLE:
+            faiss_id = len(self.id_map)
+            self.id_map.append(asset_id)
+            return faiss_id
+
         with self._write_lock:
             # Check if asset already exists
             if asset_id in self.id_map:
@@ -97,6 +112,9 @@ class FAISSIndex:
         Returns:
             List of (asset_id, L2_distance) tuples sorted by distance.
         """
+        if not ML_AVAILABLE or getattr(self, "index", None) is None:
+            return []
+
         if self.index.ntotal == 0:
             return []
 
@@ -115,6 +133,11 @@ class FAISSIndex:
 
         This is expensive but necessary for IndexFlatL2.
         """
+        if not ML_AVAILABLE:
+            if asset_id in self.id_map:
+                self.id_map.remove(asset_id)
+            return
+
         with self._write_lock:
             if asset_id not in self.id_map:
                 return
@@ -142,6 +165,8 @@ class FAISSIndex:
 
     def _save(self) -> None:
         """Persist index and ID map to disk."""
+        if not ML_AVAILABLE:
+            return
         faiss.write_index(self.index, self.index_path)
         with open(self.map_path, "w") as f:
             json.dump(self.id_map, f)
