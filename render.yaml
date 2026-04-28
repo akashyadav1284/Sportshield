@@ -37,7 +37,7 @@ services:
       - key: LOCAL_STORAGE_PATH
         value: /app/uploads
       - key: CORS_ORIGINS
-        value: "https://sportshield-ai.vercel.app"
+        value: "https://sportshield-ai-eta.vercel.app"
     healthCheckPath: /health
 
 databases:
