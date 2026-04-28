@@ -10,7 +10,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user_id
 from app.core.config import settings
 from app.models.violation import Violation
-from app.models.asset import Asset
+from app.models.asset import MediaAsset as Asset
 
 router = APIRouter(prefix="/ai", tags=["shield-ai"])
 
