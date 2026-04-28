@@ -138,7 +138,7 @@ async def _call_gemini(message: str, history: List[ChatMessage], data_context: s
     genai.configure(api_key=settings.GEMINI_API_KEY)
 
     model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
+        model_name="gemini-flash-latest",
         system_instruction=SYSTEM_PROMPT + data_context,
     )
 
