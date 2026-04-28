@@ -208,7 +208,8 @@ async def google_auth_callback(code: str, response: Response, db: AsyncSession =
     refresh_token = create_refresh_token(token_payload)
 
     # 5. Create redirect response and set cookies on it
-    redirect_res = RedirectResponse(url=f"{settings.FRONTEND_URL}/")
+    frontend_url = settings.cors_origins_list[0] if settings.cors_origins_list else "http://localhost:5173"
+    redirect_res = RedirectResponse(url=f"{frontend_url}/")
     _set_auth_cookies(redirect_res, access_token, refresh_token)
 
     return redirect_res
