@@ -5,9 +5,13 @@ from io import BytesIO
 from typing import Optional
 
 import numpy as np
-import torch
 from PIL import Image
-from transformers import CLIPProcessor, CLIPModel
+try:
+    import torch
+    from transformers import CLIPProcessor, CLIPModel
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
 
 
 class EmbeddingExtractor:
@@ -33,6 +37,10 @@ class EmbeddingExtractor:
             return
         self._initialized = True
 
+        if not ML_AVAILABLE:
+            print("EmbeddingExtractor initialized without ML capabilities (Free Tier).")
+            return
+
         # Load pretrained ResNet-50 and remove classification head
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model_id = "openai/clip-vit-base-patch32"
@@ -49,6 +57,9 @@ class EmbeddingExtractor:
         Returns:
             L2-normalized 512-d float32 numpy array.
         """
+        if not ML_AVAILABLE:
+            # Return dummy feature vector for free tier demo fallback
+            return np.zeros(512, dtype=np.float32)
         image = Image.open(BytesIO(image_bytes)).convert("RGB")
         inputs = self.processor(images=image, return_tensors="pt").to(self.device)
 
