@@ -3,7 +3,7 @@
 import uuid
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,6 +53,7 @@ async def list_assets(
 
 @router.post("/upload", response_model=List[AssetResponse], status_code=status.HTTP_201_CREATED)
 async def upload_assets(
+    background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     names: Optional[str] = Form(None),
     tags: Optional[str] = Form(None),
@@ -135,7 +136,16 @@ async def upload_assets(
 
         # Dispatch fingerprinting task
         from app.tasks.fingerprint_task import fingerprint_asset
-        fingerprint_asset.delay(str(asset.id))
+        
+        class DummyTask:
+            def retry(self, exc=None):
+                raise exc or Exception("Retry called on fallback task")
+
+        try:
+            fingerprint_asset.delay(str(asset.id))
+        except Exception as e:
+            print(f"Celery queue failed, using BackgroundTasks fallback for fingerprint: {e}")
+            background_tasks.add_task(fingerprint_asset, DummyTask(), str(asset.id))
 
     await db.commit()
 
@@ -189,6 +199,7 @@ async def remove_asset(
 @router.post("/{asset_id}/scan", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_scan(
     asset_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -205,6 +216,15 @@ async def trigger_scan(
         )
 
     from app.tasks.scan_task import scan_asset
-    scan_asset.delay(str(asset.id))
+    
+    class DummyTask:
+        def retry(self, exc=None):
+            raise exc or Exception("Retry called on fallback task")
+
+    try:
+        scan_asset.delay(str(asset.id))
+    except Exception as e:
+        print(f"Celery queue failed, using BackgroundTasks fallback for scan: {e}")
+        background_tasks.add_task(scan_asset, DummyTask(), str(asset.id))
 
     return {"detail": "Scan queued successfully", "asset_id": str(asset.id)}

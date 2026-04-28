@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +16,7 @@ router = APIRouter(prefix="/scan", tags=["scan"])
 
 @router.post("/trigger")
 async def trigger_full_scan(
+    background_tasks: BackgroundTasks,
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -35,8 +36,19 @@ async def trigger_full_scan(
     assets = assets_result.scalars().all()
 
     from app.tasks.scan_task import scan_asset
+    
+    class DummyTask:
+        def retry(self, exc=None):
+            raise exc or Exception("Retry called on fallback task")
+
     for asset in assets:
-        scan_asset.delay(str(asset.id))
+        try:
+            # Try to queue in Celery/Redis
+            scan_asset.delay(str(asset.id))
+        except Exception as e:
+            print(f"Celery queue failed, using BackgroundTasks fallback: {e}")
+            # Fallback to local background thread execution
+            background_tasks.add_task(scan_asset, DummyTask(), str(asset.id))
 
     return {
         "detail": f"Scan triggered for {len(assets)} assets",
