@@ -9,6 +9,7 @@ import { GlassCard } from '../components/shared/GlassCard';
 import { GlowingButton } from '../components/shared/GlowingButton';
 import { PageTransition } from '../components/shared/PageTransition';
 import { ArrowLeft, ExternalLink, Download, CheckCircle2, Flag, XCircle, ShieldAlert, Image, Fingerprint, Film, Database, Calendar } from 'lucide-react';
+import { getMediaUrl } from '../lib/utils';
 
 export default function ViolationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -55,7 +56,7 @@ export default function ViolationDetail() {
             <div className="aspect-video bg-[#0B0F19] rounded-lg overflow-hidden mb-5 flex items-center justify-center border border-zinc-700/50 relative group">
               {asset?.storage_url ? (
                 <>
-                  <img src={asset.storage_url} alt={asset.name} className="w-full h-full object-contain" />
+                  <img src={getMediaUrl(asset.storage_url)} alt={asset.name} className="w-full h-full object-contain" />
                   <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-md border border-white/10">
                     {asset.file_type === 'video' ? <Film className="w-3 h-3 text-cyan-400" /> : <Image className="w-3 h-3 text-cyan-400" />}
                     <span className="text-[10px] font-medium text-white uppercase tracking-wider">{asset.file_type}</span>

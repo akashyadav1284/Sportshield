@@ -15,6 +15,7 @@ import {
   Hash, Database, Clock, ShieldAlert, ExternalLink, Shield,
   Activity, Eye, Calendar, HardDrive, Cpu, ArrowUpRight
 } from 'lucide-react';
+import { getMediaUrl } from '../lib/utils';
 import api from '../lib/api';
 
 export default function AssetDetail() {
@@ -96,7 +97,7 @@ export default function AssetDetail() {
                   <span className="text-xs text-zinc-500 font-mono uppercase tracking-wider">Video Asset</span>
                 </div>
               ) : asset.storage_url ? (
-                <img src={asset.storage_url} alt={asset.name} className="w-full h-full object-contain" />
+                <img src={getMediaUrl(asset.storage_url)} alt={asset.name} className="w-full h-full object-contain" />
               ) : (
                 <div className="text-center">
                   <Image className="w-20 h-20 text-zinc-600 mx-auto mb-3" />

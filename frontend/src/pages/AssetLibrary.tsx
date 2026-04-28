@@ -16,7 +16,7 @@ import { GlowingButton } from '../components/shared/GlowingButton';
 import { GradientBadge } from '../components/shared/GradientBadge';
 import { UploadModal } from '../components/shared/UploadModal';
 import { ConfirmationModal } from '../components/shared/ConfirmationModal';
-import { cn } from '../lib/utils';
+import { cn, getMediaUrl } from '../lib/utils';
 import {
   Upload, Search, Image as ImageIcon, Film, ScanSearch, Trash2, MoreVertical, X,
   CheckCircle2, Clock, AlertCircle, Loader2, FileImage, FileVideo, Shield, ShieldAlert
@@ -146,7 +146,7 @@ export default function AssetLibrary() {
                           <span className="text-xs font-mono text-zinc-500">VIDEO_DATA</span>
                         </div>
                       ) : (
-                        <img src={asset.storage_url} alt={asset.name} className="w-full h-full object-cover group-hover:scale-[1.03] opacity-80 group-hover:opacity-100 transition-all duration-700" loading="lazy" />
+                        <img src={getMediaUrl(asset.storage_url)} alt={asset.name} className="w-full h-full object-cover group-hover:scale-[1.03] opacity-80 group-hover:opacity-100 transition-all duration-700" loading="lazy" />
                       )
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-zinc-950/80">
